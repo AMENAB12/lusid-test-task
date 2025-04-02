@@ -1,16 +1,13 @@
 import React, { useState, useRef, useEffect, KeyboardEvent } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useFormulaStore } from '@/lib/formulaStore';
-import { CheckIcon, ChevronDownIcon, PencilIcon, XIcon, TrendingUpIcon, TableIcon, FunctionIcon } from 'lucide-react';
+import { CheckIcon, ChevronDownIcon, PencilIcon, XIcon } from 'lucide-react';
 import {
     DropdownMenu,
     DropdownMenuContent,
     DropdownMenuItem,
     DropdownMenuTrigger,
-    DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { cn } from '@/lib/utils';
 
 type Variable = {
     id: string;
@@ -33,7 +30,6 @@ const FormulaInput: React.FC = () => {
     const [inputValue, setInputValue] = useState('');
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [result, setResult] = useState<number | null>(null);
-    const [activeTab, setActiveTab] = useState('formula');
     const inputRef = useRef<HTMLInputElement>(null);
     const [selectedTagIndex, setSelectedTagIndex] = useState<number | null>(null);
     const [editingTagIndex, setEditingTagIndex] = useState<number | null>(null);
@@ -53,7 +49,7 @@ const FormulaInput: React.FC = () => {
         enabled: inputValue.length > 0 && !OPERATORS.includes(inputValue),
     });
 
-    // Filter suggestions based on input and category
+    // Filter suggestions based on input
     const filteredSuggestions = suggestions.filter(item =>
         item.name.toLowerCase().includes(inputValue.toLowerCase())
     );
@@ -247,191 +243,147 @@ const FormulaInput: React.FC = () => {
     }, [editingTagIndex, editingValue]);
 
     return (
-        <div className="w-full space-y-4">
-            {/* Top Navigation */}
-            <div className="flex items-center justify-between">
-                <Tabs defaultValue="formula" className="w-auto" onValueChange={(value) => setActiveTab(value)}>
-                    <TabsList className="bg-gray-100">
-                        <TabsTrigger value="formula" className="flex items-center gap-2">
-                            <FunctionIcon className="h-4 w-4" />
-                            Formula
-                        </TabsTrigger>
-                        <TabsTrigger value="trend" className="flex items-center gap-2">
-                            <TrendingUpIcon className="h-4 w-4" />
-                            Trend
-                        </TabsTrigger>
-                        <TabsTrigger value="data" className="flex items-center gap-2">
-                            <TableIcon className="h-4 w-4" />
-                            Data
-                        </TabsTrigger>
-                    </TabsList>
-                </Tabs>
-            </div>
-
-            {/* Formula Input Area */}
-            <div className="relative">
-                <div className={cn(
-                    "flex items-center border-2 rounded-lg p-3 bg-white min-h-12",
-                    "focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500",
-                    "shadow-sm hover:border-gray-400 transition-colors"
-                )}>
-                    <div className="flex flex-wrap gap-1.5 items-center flex-grow">
-                        {Array.isArray(formula) && formula.map((item, index) => (
-                            <div key={`${item.id}-${index}`} className="relative">
-                                {item.category === 'operator' ? (
-                                    <span className="mx-1 text-gray-700 font-medium">{item.name}</span>
-                                ) : editingTagIndex === index ? (
-                                    <div className="flex items-center px-2 py-1.5 rounded-md bg-blue-50 border-2 border-blue-300">
-                                        <input
-                                            ref={editInputRef}
-                                            type="text"
-                                            className="outline-none bg-transparent w-full"
-                                            value={editingValue}
-                                            onChange={(e) => setEditingValue(e.target.value)}
-                                            onKeyDown={handleEditingKeyDown}
-                                            onBlur={finishEditing}
-                                        />
-                                        <button
-                                            className="ml-1.5 text-blue-600 hover:text-blue-800"
-                                            onClick={finishEditing}
+        <div className="relative w-full">
+            <div className="flex items-center border rounded-md p-2 bg-white min-h-10 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-blue-500">
+                <div className="flex flex-wrap gap-1 items-center flex-grow">
+                    {Array.isArray(formula) && formula.map((item, index) => (
+                        <div key={`${item.id}-${index}`} className="relative">
+                            {item.category === 'operator' ? (
+                                <span className="mx-1 text-gray-700">{item.name}</span>
+                            ) : editingTagIndex === index ? (
+                                <div className="flex items-center px-2 py-1 rounded bg-blue-100 border-2 border-blue-300">
+                                    <input
+                                        ref={editInputRef}
+                                        type="text"
+                                        className="outline-none bg-transparent w-full"
+                                        value={editingValue}
+                                        onChange={(e) => setEditingValue(e.target.value)}
+                                        onKeyDown={(e) => handleEditingKeyDown(e)}
+                                        onBlur={finishEditing}
+                                    />
+                                    <button
+                                        className="ml-1 text-gray-500 hover:text-gray-700"
+                                        onClick={finishEditing}
+                                    >
+                                        <CheckIcon className="h-3 w-3" />
+                                    </button>
+                                </div>
+                            ) : (
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <div
+                                            className={`
+                                                px-2 py-1 rounded text-sm flex items-center gap-1 cursor-pointer
+                                                ${item.category === 'number' ? 'bg-gray-100' : 'bg-blue-100'}
+                                                ${selectedTagIndex === index ? 'ring-2 ring-blue-300' : ''}
+                                                group
+                                            `}
+                                            onClick={() => handleTagClick(index)}
                                         >
-                                            <CheckIcon className="h-3.5 w-3.5" />
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <DropdownMenu>
-                                        <DropdownMenuTrigger asChild>
-                                            <div
-                                                className={cn(
-                                                    "px-2 py-1.5 rounded-md text-sm flex items-center gap-1.5 cursor-pointer",
-                                                    "transition-all duration-200",
-                                                    item.category === 'number'
-                                                        ? 'bg-gray-100 hover:bg-gray-200'
-                                                        : 'bg-blue-50 hover:bg-blue-100',
-                                                    selectedTagIndex === index && 'ring-2 ring-blue-300',
-                                                    "group"
-                                                )}
-                                                onClick={() => handleTagClick(index)}
-                                            >
-                                                {item.name}
-                                                <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button
-                                                        className="text-gray-500 hover:text-gray-700"
-                                                        onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            startEditing(index);
-                                                        }}
-                                                    >
-                                                        <PencilIcon className="h-3.5 w-3.5" />
-                                                    </button>
-                                                    <button
-                                                        className="ml-1 text-gray-500 hover:text-red-500"
-                                                        onClick={(e) => handleRemoveVariable(index, e)}
-                                                    >
-                                                        <XIcon className="h-3.5 w-3.5" />
-                                                    </button>
-                                                    <ChevronDownIcon className="h-3.5 w-3.5 ml-1" />
-                                                </div>
-                                            </div>
-                                        </DropdownMenuTrigger>
-                                        <DropdownMenuContent align="start" className="w-64">
-                                            <DropdownMenuItem
-                                                onClick={(e) => {
-                                                    e.stopPropagation();
-                                                    startEditing(index);
-                                                }}
-                                            >
-                                                <div className="flex items-center text-sm">
-                                                    <PencilIcon className="h-3.5 w-3.5 mr-2" />
-                                                    Edit
-                                                </div>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuItem
-                                                onClick={(e) => handleRemoveVariable(index, e)}
-                                                className="text-red-500"
-                                            >
-                                                <div className="flex items-center text-sm">
-                                                    <XIcon className="h-3.5 w-3.5 mr-2" />
-                                                    Remove
-                                                </div>
-                                            </DropdownMenuItem>
-                                            <DropdownMenuSeparator />
-                                            <div className="px-2 py-1 text-xs text-gray-500">
-                                                Replace with:
-                                            </div>
-                                            {suggestions.slice(0, 5).map((suggestion, suggestionIndex) => (
-                                                <DropdownMenuItem
-                                                    key={`${suggestion.id}-${suggestionIndex}`}
-                                                    onClick={() => handleReplaceVariable(index, suggestion)}
+                                            {item.name}
+                                            <div className="flex items-center">
+                                                <button
+                                                    className="hidden group-hover:block mr-1 text-gray-500 hover:text-gray-700"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        startEditing(index);
+                                                    }}
                                                 >
-                                                    <div className="flex items-center justify-between w-full">
-                                                        <span className="font-medium">{suggestion.name}</span>
-                                                        <span className="text-xs text-gray-500">{suggestion.category}</span>
-                                                    </div>
-                                                </DropdownMenuItem>
-                                            ))}
-                                        </DropdownMenuContent>
-                                    </DropdownMenu>
-                                )}
-                            </div>
-                        ))}
+                                                    <PencilIcon className="h-3 w-3" />
+                                                </button>
+                                                <button
+                                                    className="hidden group-hover:block mr-1 text-gray-500 hover:text-red-500"
+                                                    onClick={(e) => handleRemoveVariable(index, e)}
+                                                >
+                                                    <XIcon className="h-3 w-3" />
+                                                </button>
+                                                <ChevronDownIcon className="h-3 w-3" />
+                                            </div>
+                                        </div>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent>
+                                        <DropdownMenuItem
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                startEditing(index);
+                                            }}
+                                        >
+                                            <div className="flex items-center text-sm">
+                                                <PencilIcon className="h-3 w-3 mr-2" />
+                                                Edit
+                                            </div>
+                                        </DropdownMenuItem>
+                                        <DropdownMenuItem
+                                            onClick={(e) => handleRemoveVariable(index, e)}
+                                        >
+                                            <div className="flex items-center text-sm text-red-500">
+                                                <XIcon className="h-3 w-3 mr-2" />
+                                                Remove
+                                            </div>
+                                        </DropdownMenuItem>
+                                        <hr className="my-1" />
+                                        <DropdownMenuItem className="text-xs text-gray-500 py-1 pointer-events-none">
+                                            Replace with:
+                                        </DropdownMenuItem>
+                                        {suggestions.slice(0, 5).map((suggestion, suggestionIndex) => (
+                                            <DropdownMenuItem
+                                                key={`${suggestion.id}-${suggestionIndex}`}
+                                                onClick={() => handleReplaceVariable(index, suggestion)}
+                                            >
+                                                <div className="flex items-center justify-between w-full">
+                                                    <span>{suggestion.name}</span>
+                                                    <span className="text-xs text-gray-500">{suggestion.category}</span>
+                                                </div>
+                                            </DropdownMenuItem>
+                                        ))}
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            )}
+                        </div>
+                    ))}
 
-                        <input
-                            ref={inputRef}
-                            type="text"
-                            className="outline-none flex-grow min-w-[100px] text-gray-800"
-                            value={inputValue}
-                            onChange={handleInputChange}
-                            onKeyDown={handleKeyDown}
-                            placeholder={formula.length === 0 ? "Enter formula..." : ""}
-                        />
-                    </div>
-
-                    <button
-                        onClick={evaluateFormula}
-                        className={cn(
-                            "ml-2 px-3 py-1.5 rounded-md text-white text-sm font-medium",
-                            "bg-blue-500 hover:bg-blue-600 transition-colors",
-                            "focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-                        )}
-                    >
-                        =
-                    </button>
+                    <input
+                        ref={inputRef}
+                        type="text"
+                        className="outline-none flex-grow min-w-[50px]"
+                        value={inputValue}
+                        onChange={handleInputChange}
+                        onKeyDown={handleKeyDown}
+                        placeholder={formula.length === 0 ? "Enter formula" : ""}
+                    />
                 </div>
 
-                {result !== null && (
-                    <div className="absolute right-2 -bottom-7 text-sm font-medium text-gray-700">
-                        = {result.toLocaleString()}
-                    </div>
-                )}
-
-                {/* Autocomplete suggestions */}
-                {showSuggestions && filteredSuggestions.length > 0 && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border rounded-lg shadow-lg">
-                        <div className="p-2 text-xs text-gray-500 border-b">
-                            Suggestions
-                        </div>
-                        <ul className="py-1 max-h-60 overflow-auto">
-                            {filteredSuggestions.slice(0, 7).map((suggestion, suggestionIndex) => (
-                                <li
-                                    key={`${suggestion.id}-${suggestionIndex}`}
-                                    className={cn(
-                                        "px-4 py-2 hover:bg-gray-50 cursor-pointer",
-                                        "flex justify-between items-center",
-                                        "transition-colors"
-                                    )}
-                                    onClick={() => handleSelectSuggestion(suggestion)}
-                                >
-                                    <span className="font-medium">{suggestion.name}</span>
-                                    <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded">
-                                        {suggestion.category}
-                                    </span>
-                                </li>
-                            ))}
-                        </ul>
-                    </div>
-                )}
+                <button
+                    onClick={evaluateFormula}
+                    className="ml-2 p-1 rounded bg-blue-500 text-white text-xs"
+                >
+                    =
+                </button>
             </div>
+
+            {result !== null && (
+                <div className="absolute right-2 -bottom-6 text-sm font-medium">
+                    = {result}
+                </div>
+            )}
+
+            {/* Autocomplete suggestions */}
+            {showSuggestions && filteredSuggestions.length > 0 && (
+                <div className="absolute z-10 w-full mt-1 bg-white border rounded-md shadow-lg">
+                    <ul className="py-1 max-h-60 overflow-auto">
+                        {filteredSuggestions.slice(0, 7).map((suggestion, suggestionIndex) => (
+                            <li
+                                key={`${suggestion.id}-${suggestionIndex}`}
+                                className="px-4 py-2 hover:bg-gray-100 cursor-pointer flex justify-between"
+                                onClick={() => handleSelectSuggestion(suggestion)}
+                            >
+                                <span>{suggestion.name}</span>
+                                <span className="text-xs text-gray-500">{suggestion.category}</span>
+                            </li>
+                        ))}
+                    </ul>
+                </div>
+            )}
         </div>
     );
 };
